@@ -1,7 +1,3 @@
-"""
-utils.py — Version gratuite (sans OpenAI)
-Utilise Ollama à la place de GPT pour get_vehicle_details et get_procedure.
-"""
 import json
 import re
 import os

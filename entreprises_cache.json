@@ -1,0 +1,24 @@
+[
+  {
+    "id": 2,
+    "name": "Tête de véhicule",
+    "start_time": null,
+    "end_time": null,
+    "is_open_24h": true,
+    "price": null,
+    "descriptions": "Ce service est offert par notre structure",
+    "distance_km": 321,
+    "domaine": "Climatisation auto",
+    "entreprise": {
+      "id": 1,
+      "name": "DGLINK",
+      "latitude": "6.4132585",
+      "longitude": "2.3407807",
+      "google_formatted_address": null,
+      "call_phone": null,
+      "whatsapp_phone": null,
+      "status_online": false,
+      "logo": "https://res.cloudinary.com/dsumeoiga/image/upload/v1772183348/entreprises/logos/sof6ixqqntcdcffm8xuy.jpg"
+    }
+  }
+]

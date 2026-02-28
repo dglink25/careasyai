@@ -1,7 +1,3 @@
-# CareEasy AI — requirements.txt FINAL
-# Versions libres : pip résout les conflits automatiquement
-# Seules les versions MINIMALES sont fixées
-
 flask>=3.0
 flask-cors>=4.0
 python-dotenv>=1.0
@@ -25,7 +21,6 @@ langchain-chroma>=0.1
 # PDF
 pypdf>=4.0
 
-# Transcription (SANS compilation C — nécessite ffmpeg installé)
 faster-whisper>=1.1
 
 # Voix
