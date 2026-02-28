@@ -1,0 +1,9 @@
+{
+	"servers": {
+		"Doc Partner": {
+			"url": "https://www.docpartner.dev/~gitbook/mcp",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}
