@@ -253,6 +253,7 @@ def chat():
             "services_proches": result.get("services_proches", []),
             "sources":          result.get("sources", []),
             "audio_url":        audio_url,
+            "video_url":        result.get("video_url"),  # URL YouTube démo
         }), 200
 
     except Exception as e:

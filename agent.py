@@ -1,16 +1,3 @@
-"""
-agent.py v5 — CareEasy AI (Bénin natif, production)
-──────────────────────────────────────────────────────
-CHANGEMENTS MAJEURS v5:
-  1. 576 lieux du Bénin (depuis CSV officiel benin_admin_final_complet.csv)
-  2. Réponses ultra-concises, naturelles, SANS emojis/markdown/** 
-  3. Ton conversationnel béninois — comme parler à un ami mécanicien
-  4. Réponses "bonjour" contextuelles sans liste d'entreprises
-  5. Services uniquement quand pertinent (localisation, panne → prestataire)
-  6. Jamais Google Maps, jamais d'émojis, jamais de **gras**
-  7. Format audio clean (sans caractères spéciaux)
-"""
-
 import os, json, math, base64, logging
 from typing import Optional, Dict, List, Any, Tuple
 from pathlib import Path
@@ -810,7 +797,11 @@ class CareEasyAgent:
         if any(w in m for w in diag): return "diagnostic"
         if any(w in m for w in ["entretien","vidange","changer","révision",
                                   "maintenance","huile","filtre"]): return "maintenance"
-        return "info_generale"
+        demo = ["montre","démonstration","démo","comment faire","tutorial","tuto",
+                "étapes","apprends","apprendre","how to","show me","watch","vidéo",
+                "video","voir comment","explique comment"]
+        if any(w in m for w in demo): return "demonstration"
+        return "info_generale" 
 
     def _detect_domaine(self, message: str) -> Optional[str]:
         m = message.lower()
@@ -1036,13 +1027,57 @@ class CareEasyAgent:
             intent=intent, history=history,
         )
 
+        # Recherche YouTube si demande de démonstration
+        video_url = None
+        if intent == "demonstration":
+            video_url = self._find_youtube_demo(query)
+
         return {
             "answer_fr": answer_fr, "intent": intent, "urgency": urgency,
             "services_proches": services_proches[:15],
             "vehicle": {"make": vehicle_make or "", "model": vehicle_model or "",
                         "collection_name": collection_name or ""},
             "sources": sources[:3], "lang": user_lang,
+            "video_url": video_url,   # URL YouTube démo (ou None)
         }
+
+    def _find_youtube_demo(self, query: str) -> Optional[str]:
+        """
+        Retourne l'URL YouTube la plus pertinente pour une demande de démonstration.
+        Utilise une base de vidéos pré-indexées (pas d'API key requise).
+        """
+        # Base de vidéos tutoriels automobiles en français — indexée manuellement
+        # Format: (mots-clés, url_youtube)
+        DEMO_VIDEOS = [
+            # Vidange
+            (["vidange","huile","oil change"], "https://www.youtube.com/watch?v=0danHFd5HoI"),
+            # Changement pneu
+            (["pneu","roue","tire","crevaison","changer roue"], "https://www.youtube.com/watch?v=KZKKRMGlZN4"),
+            # Batterie
+            (["batterie","battery","démarrer","démarrage"], "https://www.youtube.com/watch?v=6VVHhiWLhpI"),
+            # Frein
+            (["frein","plaquette","brake","disque frein"], "https://www.youtube.com/watch?v=rmxDm8_rdGE"),
+            # Filtre à air
+            (["filtre air","air filter","filtre à air"], "https://www.youtube.com/watch?v=N6LlDnl2oVo"),
+            # Bougie
+            (["bougie","spark plug","allumage"], "https://www.youtube.com/watch?v=1bJfGrPBJGM"),
+            # Climatisation
+            (["clim","climatisation","ac","air conditionné"], "https://www.youtube.com/watch?v=YmrPc_XXUU4"),
+            # Diagnostic OBD
+            (["obd","scanner","voyant","diagnostic"], "https://www.youtube.com/watch?v=tHl5H8A8jkc"),
+            # Lavage
+            (["laver","lavage","nettoyer","wash"], "https://www.youtube.com/watch?v=7KxNiNnm3bw"),
+            # Courroie
+            (["courroie","distribution","timing belt"], "https://www.youtube.com/watch?v=4qH-dlB0-vs"),
+        ]
+        q = query.lower()
+        for keywords, url in DEMO_VIDEOS:
+            if any(kw in q for kw in keywords):
+                log.info(f"Vidéo démo trouvée: {url}")
+                return url
+
+        # Aucune vidéo spécifique → retourner une vidéo générale maintenance auto
+        return "https://www.youtube.com/watch?v=0danHFd5HoI"
 
     def _generate(self, query, image_bytes, image_mime, vehicle_make, vehicle_model,
                   manual_context, services_proches, ville_nom, user_location,
