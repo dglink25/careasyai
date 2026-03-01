@@ -48,7 +48,6 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
 # Singletons
 audio_processor = CareasyAudioProcessor()
 
-
 @app.errorhandler(404)
 def not_found(e):
     return jsonify({"message": "Not Found"}), 404
@@ -65,7 +64,7 @@ def index():
         "db":      "ChromaDB (local)",
     }), 200
 
-@app.route("/api/v1/status", methods=["GET"])
+@app.route("/status", methods=["GET"])
 def status():
     """Vérification santé — Ollama + ChromaDB."""
     import requests as req
@@ -93,9 +92,7 @@ def status():
         "tts":         "ready",
     }), 200
 
-
-
-@app.route("/api/v1/chat", methods=["POST"])
+@app.route("/chat", methods=["POST"])
 def chat():
     """
     Point d'entrée principal — texte / audio / photo.
@@ -135,7 +132,6 @@ def chat():
         history     = (history_raw if isinstance(history_raw, list)
                        else __import__("json").loads(history_raw or "[]"))
 
-        # ── Fichier joint ─────────────────────────────────────────────────────
         image_bytes = None
         image_mime  = "image/jpeg"
         lang_detected = lang
@@ -216,17 +212,21 @@ def chat():
         urgency   = result.get("urgency", "unknown")
         intent    = result.get("intent",  "info_generale")
 
+        # ── Traduction réponse ────────────────────────────────────────────────
         answer_final = answer_fr
         if lang_detected not in ("fr",) and answer_fr:
             answer_final = audio_processor.translate_from_french(answer_fr, target_lang=lang_detected)
 
+        # ── TTS — URL dans JSON (widget joue l'audio sans recharger la page) ──
+        audio_url = None
         if return_audio and answer_final:
-            audio_path = str(AUDIO_TMP / f"resp_{uuid.uuid4().hex}.mp3")
+            audio_fn    = f"resp_{uuid.uuid4().hex}.mp3"
+            audio_path  = str(AUDIO_TMP / audio_fn)
             result_path = audio_processor.text_to_speech_sync(answer_final, audio_path, lang_detected)
             if result_path and Path(result_path).exists():
-                return send_file(result_path, mimetype="audio/mpeg",
-                                 as_attachment=True, download_name="careasy_response.mp3")
+                audio_url = f"/api/v1/audio/serve/{audio_fn}"
 
+        # ── Sauvegarde Laravel ────────────────────────────────────────────────
         if conversation_id and answer_fr:
             ai_msg_id = save_ai_message(
                 conversation_id=conversation_id,
@@ -252,12 +252,12 @@ def chat():
             "vehicle":          result.get("vehicle", {}),
             "services_proches": result.get("services_proches", []),
             "sources":          result.get("sources", []),
+            "audio_url":        audio_url,
         }), 200
 
     except Exception as e:
         log.error(f"Erreur /chat : {e}", exc_info=True)
         return jsonify({"message": f"Erreur : {str(e)}"}), 500
-
 
 @app.route("/api/v1/embed", methods=["POST", "DELETE"])
 def embed():
@@ -329,6 +329,7 @@ def embed():
             log.error(f"Erreur DELETE /embed : {e}", exc_info=True)
             return jsonify({"message": str(e)}), 500
 
+
 @app.route("/api/v1/qa", methods=["POST"])
 def qa():
     """Q&A sur un document ChromaDB (local, gratuit)."""
@@ -380,7 +381,6 @@ def nearby_services():
     except Exception as e:
         return jsonify({"message": str(e)}), 500
 
-
 @app.route("/api/v1/audio/tts", methods=["POST"])
 def tts():
     try:
@@ -397,6 +397,15 @@ def tts():
         return jsonify({"message": "Erreur TTS"}), 500
     except Exception as e:
         return jsonify({"message": str(e)}), 500
+
+
+@app.route("/api/v1/audio/serve/<filename>")
+def serve_audio_file(filename):
+    """Sert les fichiers audio TTS générés pour le widget."""
+    audio_path = AUDIO_TMP / filename
+    if not audio_path.exists():
+        return jsonify({"error": "Fichier audio expiré ou non trouvé"}), 404
+    return send_file(str(audio_path), mimetype="audio/mpeg", as_attachment=False)
 
 
 @app.route("/api/v1/audio/transcribe", methods=["POST"])
@@ -416,7 +425,6 @@ def transcribe():
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 500
-
 
 
 @app.route("/api/v1/video", methods=["GET"])
