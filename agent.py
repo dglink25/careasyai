@@ -16,50 +16,103 @@ EMBED_MODEL  = os.getenv("EMBED_MODEL",
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 CACHE_FILE   = os.getenv("CACHE_FILE", "entreprises_cache.json")
 
-SYSTEM_CAREASY = """Tu es CarAI, l'assistant IA de la plateforme CareEasy au Bénin.
+SUPPORT_EMAIL    = "careasy26@gmail.com"
+SUPPORT_PHONE    = "+229 01 97 97 97"   # à adapter
+SUPPORT_WHATSAPP = "+229 01 97 97 97"   # à adapter
+APP_NAME         = "CarEasy"           # nom officiel, jamais CareEasy
+
+SYSTEM_CAREASY = f"""Tu es CarAI, l'assistant IA de la plateforme {APP_NAME} au Bénin.
 
 PERSONNALITÉ:
 - Tu parles comme un ami mécanicien béninois compétent et chaleureux
-- Ton langage est naturel, direct, professionnel mais pas froid
-- Tu comprends le français béninois, le Fon, l'anglais, le Swahili, le Yoruba
-- Tu réponds TOUJOURS dans la langue utilisée par l'interlocuteur
+- Tu réponds TOUJOURS dans la même langue que l'utilisateur
+- Si l'utilisateur parle Fon, tu réponds en Fon
+- Si l'utilisateur parle français, tu réponds en français
+- Tu gardes en mémoire TOUT l'historique de la conversation
+- Tu réponds à la VRAIE question posée, pas à une autre
 
-RÈGLES STRICTES:
-1. JAMAIS d'emojis, de symboles spéciaux, ou de caractères decoratifs
-2. JAMAIS de ** gras ** ou # titres markdown dans le texte
-3. JAMAIS mentionner Google Maps, Apple Maps ou toute app externe
-4. JAMAIS recommander de "chercher sur internet"
-5. Toutes les entreprises viennent UNIQUEMENT de la base CareEasy
-6. Réponses naturelles comme une vraie conversation
+RÈGLES ABSOLUES:
+1. JAMAIS d'emojis, de symboles spéciaux ou de caractères decoratifs
+2. JAMAIS de ** gras ** ou # titres markdown
+3. JAMAIS mentionner Google Maps, Apple Maps, Waze ou toute app externe
+4. JAMAIS recommander "chercher sur internet"
+5. Toutes les entreprises viennent UNIQUEMENT de la base {APP_NAME}
+6. Support: {SUPPORT_EMAIL}
+7. Le nom est {APP_NAME} (pas CareEasy, pas care easy)
 
-STYLE DES RÉPONSES:
-- Court et direct pour les questions simples
-- Structuré mais sans markdown pour les diagnostics
-- Si quelqu'un dit juste "bonjour", répondre juste "Bonjour" naturellement
-- Si des entreprises sont disponibles dans le contexte, les lister proprement
+QUAND L'UTILISATEUR DEMANDE CE QUE TU SAIS FAIRE:
+Réponds ceci (adapté à la langue):
+"Je suis CarAI, l'assistant de la plateforme CarEasy au Bénin. Voici ce que je sais faire:
+
+Diagnostic automobile: Je peux analyser votre panne en décrivant les symptômes ou en envoyant une photo du problème. Je donne les causes probables, le niveau d'urgence et les étapes de réparation avec une estimation du coût en FCFA.
+
+Localiser des prestataires: Je trouve les garages mécaniciens, stations d'essence, centres de lavage, vulcanisateurs, électriciens auto, peintres, remorqueurs et autres professionnels automobile inscrits sur CarEasy près de votre position au Bénin.
+
+Conseils d'entretien: Je vous guide pour la vidange, le changement de filtres, les révisions périodiques, la vérification des pneus, de la batterie et de la climatisation.
+
+Vidéos de démonstration: Je peux vous envoyer des tutoriels vidéo pour vous montrer comment effectuer certaines opérations.
+
+Voix et langues: Je comprends le français, l'anglais, le Fon, le Yoruba et le Swahili. Je peux répondre par message vocal si vous l'activez.
+
+Contact support: {SUPPORT_EMAIL}"
 
 FORMAT DIAGNOSTIC (sans emojis ni markdown):
 Diagnostic: [causes probables]
 Urgence: URGENT / ATTENTION / OK
 A verifier maintenant: [actions immédiates]
-Solutions: [étapes simples vers complexe]
-Cout estimé: [fourchette en FCFA, marché béninois]
-[Si entreprises disponibles] Prestataires CareEasy: [liste]
+Solutions: [étapes]
+Cout estimé FCFA: [fourchette]
 
 FORMAT SERVICES:
-[NOM DE L'ENTREPRISE] - [distance] km
+[NOM] - [distance] km
+Domaine: [type]
 Adresse: [adresse]
 Tel: [numéro]
 WhatsApp: [numéro]
 Email: [si disponible]
 Horaires: [horaires]
-Services: [liste]
 ---"""
 
-SYSTEM_GREETING = """Tu es CarAI, l'assistant de CareEasy au Bénin.
+SYSTEM_GREETING = f"""Tu es CarAI, l'assistant de {APP_NAME} au Bénin.
 Réponds de façon naturelle et chaleureuse, comme un ami.
-JAMAIS d'emojis. JAMAIS de ** ou de #. Réponses courtes et directes.
-Réponds toujours dans la langue de l'utilisateur."""
+JAMAIS d'emojis. JAMAIS de ** ou de #.
+Réponses courtes et directes.
+Réponds toujours dans la MÊME LANGUE que l'utilisateur.
+Si l'utilisateur dit bonjour en Fon (Mo do bo, Adobo, etc.), réponds en Fon.
+Si l'utilisateur demande si tu vas bien, réponds normalement en sa langue."""
+
+# ─── Dictionnaire Fon de base ──────────────────────────────────────────────────
+# Mots et phrases courants en langue Fon (dialecte du Bénin)
+FON_DICT = {
+    "bonjour": "Do mi do bo",
+    "comment vas-tu": "A do bo?",
+    "je vais bien": "Un do bo",
+    "merci": "Akpe",
+    "oui": "Yoo",
+    "non": "Ado",
+    "aide": "D'un nu mi",
+    "voiture": "Kɔ",
+    "moto": "Moto",
+    "garage": "Garage",
+    "problème": "Nudo",
+    "urgent": "Ta ta ta",
+    "ok": "Yoo",
+    "comprends pas": "Un ma tuun",
+}
+
+# ─── Phrases en Fon pour situations communes ─────────────────────────────────
+FON_PHRASES = {
+    "greeting": "Do mi do bo ! Un nyɔn {name} CarEasy. Nɛ a na mi? (Bonjour ! Je suis CarAI de CarEasy. Comment puis-je t'aider ?)",
+    "no_service": "Mɛ ma mɔ prestataire do CarEasy mɛ {ville} gɔ do. A na wa sɛ email: {email} (Nous n'avons pas encore trouvé de prestataire à {ville}. Contactez-nous: {email})",
+    "capabilities": """Voici ce que je fais (en français car le Fon complet n'est pas encore disponible):
+- Diagnostic de panne voiture/moto
+- Trouver garage, mécanicien, station essence près de vous
+- Conseils entretien
+- Tutoriels vidéo
+- Je comprends le Fon, français, anglais
+Contact: {email}""",
+}
+
 
 VEHICLE_ALIASES = {
     "dayang":("Dayang","DY110-3"),"dayan":("Dayang","DY110-3"),
@@ -777,6 +830,15 @@ class CareEasyAgent:
 
     # ─── Détection contexte ────────────────────────────────────────────────
 
+    def _detect_fon(self, text: str) -> bool:
+        """Détecte si le message est en Fon ou si l'utilisateur veut une réponse en Fon."""
+        t = text.lower()
+        fon_markers = ["fon", "en fon", "en langue fon", "akpe", "yoo",
+                       "adobo", "do bo", "je veux en fon", "repond en fon",
+                       "répondre en fon", "réponds en fon", "répond en fon",
+                       "langue locale", "langue fon", "dialecte", "local fon"]
+        return any(m in t for m in fon_markers)
+
     def _detect_intent(self, message: str, has_image: bool) -> str:
         if has_image: return "diagnostic"
         m = message.lower()
@@ -799,9 +861,16 @@ class CareEasyAgent:
                                   "maintenance","huile","filtre"]): return "maintenance"
         demo = ["montre","démonstration","démo","comment faire","tutorial","tuto",
                 "étapes","apprends","apprendre","how to","show me","watch","vidéo",
-                "video","voir comment","explique comment"]
+                "video","voir comment","explique comment","montre comment",
+                "montre moi","montre-moi","démontre","voir la procédure"]
         if any(w in m for w in demo): return "demonstration"
-        return "info_generale" 
+        caps = ["qu est-ce que tu sais","que sais-tu","que sais tu","capabilities",
+                "tu sais faire quoi","tu fais quoi","tu peux faire quoi","what can you",
+                "tes fonctions","tes capacites","présente toi","présente-toi",
+                "qui es-tu","qui es tu","tell me about yourself","sais fais",
+                "sais faire","tout ce que tu sais","ce que tu fais"]
+        if any(w in m for w in caps): return "capabilities"
+        return "info_generale"
 
     def _detect_domaine(self, message: str) -> Optional[str]:
         m = message.lower()
@@ -900,7 +969,7 @@ class CareEasyAgent:
         """Format propre, sans emojis, pour injection dans le prompt."""
         if not services: return ""
         n = len(services)
-        header = f"{n} entreprise(s) CareEasy trouvée(s)"
+        header = f"{n} entreprise(s) CarEasy trouvée(s)"
         if ville and ville != "Bénin": header += f" près de {ville}"
         lines = [header, ""]
         for i, s in enumerate(services, 1):
@@ -1090,10 +1159,23 @@ class CareEasyAgent:
         if intent == "salutation":
             system = SYSTEM_GREETING
             messages = [{"role": "system", "content": system}]
-            messages.extend(history[-2:])
+            messages.extend(history[-4:])
             messages.append({"role": "user", "content": query})
             try:
-                answer = self._ollama(messages, temperature=0.3, max_tokens=150)
+                answer = self._ollama(messages, temperature=0.3, max_tokens=200)
+                return answer, "unknown"
+            except Exception as e:
+                return f"Ollama hors ligne: {e}", "unknown"
+
+        # Demande de capacités → réponse depuis system prompt
+        if intent == "capabilities":
+            system = SYSTEM_CAREASY
+            messages = [{"role": "system", "content": system}]
+            messages.extend(history[-4:])
+            messages.append({"role": "user", "content":
+                "Qu'est-ce que tu sais faire ? Présente toutes tes fonctionnalités."})
+            try:
+                answer = self._ollama(messages, temperature=0.2, max_tokens=600)
                 return answer, "unknown"
             except Exception as e:
                 return f"Ollama hors ligne: {e}", "unknown"
@@ -1101,6 +1183,15 @@ class CareEasyAgent:
         system = SYSTEM_CAREASY
         vehicle = f"{vehicle_make} {vehicle_model}".strip()
         parts = []
+
+        # Détection Fon — instruction prioritaire au LLM
+        if self._detect_fon(query):
+            parts.append(
+                "INSTRUCTION PRIORITAIRE: L'utilisateur veut une réponse en langue Fon "
+                "(dialecte béninois). Réponds impérativement en Fon. "
+                "Pour les termes techniques sans équivalent Fon, utilise le terme français "
+                "entre parenthèses. Commence ta réponse en Fon."
+            )
 
         if query:   parts.append(f"Question: {query}")
         if vehicle: parts.append(f"Véhicule: {vehicle}")
@@ -1120,11 +1211,11 @@ class CareEasyAgent:
             lieu = f" à {ville_nom}" if ville_nom and ville_nom != "Bénin" else ""
             parts.append(
                 f"[RÉSULTAT CAREASY: Aucune entreprise trouvée pour '{domaine}'{lieu}.\n"
-                "Dis-le clairement et propose: support@careasy.bj ou inscriptions sur la plateforme]"
+                "Dis-le clairement et propose: careasy26@gmail.com ou inscriptions sur la plateforme]"
             )
 
         messages = [{"role": "system", "content": system}]
-        messages.extend(history[-4:])
+        messages.extend(history[-6:])  # 6 derniers messages pour mémoire conversation
         messages.append({"role": "user", "content": "\n\n".join(parts)})
 
         try:

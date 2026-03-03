@@ -98,7 +98,7 @@ def chat():
     Point d'entrée principal — texte / audio / photo.
     100% gratuit, aucune API payante.
 
-    Body JSON ou Form-data :
+    Body JSON ou Form-data :fz
       message          : texte
       file             : audio (.wav/.mp3) ou image (.jpg/.png/.webp)
       lang             : fr | en | fon (défaut: fr)
